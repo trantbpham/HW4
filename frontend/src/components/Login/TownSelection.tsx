@@ -1,4 +1,4 @@
-import React, { useEffect ,useState } from 'react';
+import React, { useCallback, useEffect ,useState } from 'react';
 import assert from "assert";
 import {
   Box,
@@ -30,37 +30,36 @@ interface TownSelectionProps {
 }
 
 
-export default async function TownSelection({ doLogin }: TownSelectionProps): Promise<JSX.Element> {
+export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Element {
   const [userName, setUserName] = useState<string>(Video.instance()?.userName || '');
   const [room, setRoom] = useState<string>(Video.instance()?.coveyTownID || '');
   const { connect } = useVideoContext();
   const { apiClient } = useCoveyAppState();
   const toast = useToast();
   const [rooms, setRoomList] = React.useState<CoveyTownInfo[]>([]);
-  const retrieveList = async () => { 
+
+  const retrieveList = useCallback(async () => { 
     const response = await apiClient.listTowns(); 
     setRoomList(response.towns);
- };
+ }, [apiClient,setRoomList],)
 
-
-
-  const testRoomRequest = {
-    friendlyName: "test Room Request",
-    isPubliclyListed: true,
-  };
-
-
-
+ retrieveList();
+ 
   useEffect(() => {  
-    retrieveList();
-    setTimeout(()=> { retrieveList() },2000) 
-    return function cleanup() {
-
-    }
+    const id = setInterval(()=> { retrieveList() },2000) 
+    return (() => {
+      clearInterval(id)
+    })
   })
   
+
+  // const sortDescending = () => {
+
+  // }
   const handleJoin = async () => {
     try {
+      // eslint-disable-next-line no-console
+      console.log("reaching line 57");
       if (!userName || userName.length === 0) {
         toast({
           title: 'Unable to join town',
@@ -69,25 +68,25 @@ export default async function TownSelection({ doLogin }: TownSelectionProps): Pr
         });
         return;
       }
-        const initData = await Video.setup(userName, room);
-        console.log('initData', initData)
-        console.log("retrieve name:", room);
-        console.log("click!");
+      console.log("reaching line 64");
+      const initData = await Video.setup(userName, room);
+      console.log('initData: ', initData)
+      console.log("retrieve name: ", room);
+      console.log("click!");
 
-        const loggedIn = await doLogin(initData);
-        if (loggedIn) {
-          assert(initData.providerVideoToken);
-          await connect(initData.providerVideoToken);
-        }
-      } catch (err) {
-        toast({
-          title: 'Unable to connect to Towns Service',
-          description: err.toString(),
-          status: 'error'
-        })
+      const loggedIn = await doLogin(initData);
+      if (loggedIn) {
+        assert(initData.providerVideoToken);
+        await connect(initData.providerVideoToken);
       }
-    };
-
+    } catch (err) {
+      toast({
+        title: 'Unable to connect to Towns Service',
+        description: err.toString(),
+        status: 'error'
+      })
+    }
+  };
 
   return (
     <>
@@ -129,7 +128,7 @@ export default async function TownSelection({ doLogin }: TownSelectionProps): Pr
             <Heading p="4" as="h2" size="lg">Join an Existing Town</Heading>
             <Box borderWidth="1px" borderRadius="lg">
               <Flex p="4"><FormControl>
-                <FormLabel htmlFor="townIDToJoin">Town ID</FormLabel>
+              <FormLabel htmlFor="townIDToJoin">Town ID</FormLabel>
                 <Input autoFocus name="townIDToJoin" placeholder="ID of town to join, or select from list"
                      value={room}
                      onChange={event => setRoom(event.target.value)}
@@ -141,25 +140,22 @@ export default async function TownSelection({ doLogin }: TownSelectionProps): Pr
 
             <Heading p="4" as="h4" size="md">Select a public town to join</Heading>
             <Box maxH="500px" overflowY="scroll">
-
               <Table>
                 <TableCaption placement="bottom">Publicly Listed Towns</TableCaption>
                 <Thead>
                   <Tr>
-                    <Th>Room Name</Th>
+                    <Th>Town Name</Th>
                     <Th>Town ID</Th>
-                    <Th>Current Occupancy</Th>
-                    <Th>Maximum Occupancy</Th>
-                    <Th>Activity</Th></Tr></Thead>
-                <Tbody>
-                        <Tr key='demoTownID'>
-                <Td role='cell'>{ rooms.map(town => <td key = 'inner cell' >{town.friendlyName} </td> ) }</Td>
-                <Td role='cell'>{ rooms.map(town => town.coveyTownID) }</Td>
-                <Td role='cell'>{rooms.map(town => town.currentOccupancy)}</Td>
-                <Td role='cell'>{rooms.map(town => town.maximumOccupancy)}</Td>
-                <Td role='cell'>Unknown/Unknown 
-                    <Button onClick={handleJoin}>Connect</Button></Td></Tr>
-                </Tbody>
+                    <Th>Activity</Th>
+                    </Tr></Thead>
+                { rooms.map(town => 
+                  <Tr key={`${town.coveyTownID}`}>               
+                    <Td role='cell'>{town.friendlyName}</Td>
+                    <Td role='cell'>{town.coveyTownID }</Td>
+                    <Td role='cell'>{town.currentOccupancy}/{town.maximumOccupancy} <Button onClick={handleJoin}>Connect</Button></Td>
+                  </Tr> 
+                  )
+                  }
               </Table>
             </Box>
           </Box>
