@@ -21,28 +21,44 @@ import {
 } from '@chakra-ui/react';
 import useVideoContext from '../VideoCall/VideoFrontend/hooks/useVideoContext/useVideoContext';
 import Video from '../../classes/Video/Video';
-import { TownJoinResponse, , TownListResponse } from '../../classes/TownsServiceClient';
+import { TownJoinResponse, CoveyTownInfo } from '../../classes/TownsServiceClient';
 import useCoveyAppState from '../../hooks/useCoveyAppState';
+
 
 interface TownSelectionProps {
   doLogin: (initData: TownJoinResponse) => Promise<boolean>
 }
 
 
-export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Element {
+export default async function TownSelection({ doLogin }: TownSelectionProps): Promise<JSX.Element> {
   const [userName, setUserName] = useState<string>(Video.instance()?.userName || '');
+  const [room, setRoom] = useState<string>(Video.instance()?.coveyTownID || '');
   const { connect } = useVideoContext();
   const { apiClient } = useCoveyAppState();
   const toast = useToast();
+  const [rooms, setRoomList] = React.useState<CoveyTownInfo[]>([]);
+  const retrieveList = async () => { 
+    const response = await apiClient.listTowns(); 
+    setRoomList(response.towns);
+ };
 
 
-  const [rooms, setRoomList] = React.useState([]);
-  useEffect(() => {
-      const listRoom = await apiClient.listTowns();
-      setRoomList(listRoom.towns)
-    });
-    
 
+  const testRoomRequest = {
+    friendlyName: "test Room Request",
+    isPubliclyListed: true,
+  };
+
+
+
+  useEffect(() => {  
+    retrieveList();
+    setTimeout(()=> { retrieveList() },2000) 
+    return function cleanup() {
+
+    }
+  })
+  
   const handleJoin = async () => {
     try {
       if (!userName || userName.length === 0) {
@@ -53,39 +69,24 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
         });
         return;
       }
-      const initData = await Video.setup(userName, 'demoTownID');
-      
-      if (!rooms || rooms.length === 0) {
+        const initData = await Video.setup(userName, room);
+        console.log('initData', initData)
+        console.log("retrieve name:", room);
+        console.log("click!");
+
+        const loggedIn = await doLogin(initData);
+        if (loggedIn) {
+          assert(initData.providerVideoToken);
+          await connect(initData.providerVideoToken);
+        }
+      } catch (err) {
         toast({
-          title: 'Unable to join town', 
-          description: 'Please enter a town ID',
-          status: 'error',
-        });
-        return;
+          title: 'Unable to connect to Towns Service',
+          description: err.toString(),
+          status: 'error'
+        })
       }
-      
-      const loggedIn = await doLogin(initData);
-      if (loggedIn) {
-        assert(initData.providerVideoToken);
-        await connect(initData.providerVideoToken);
-      }
-    } catch (err) {
-      toast({
-        title: 'Unable to connect to Towns Service',
-        description: err.toString(),
-        status: 'error'
-      })
-    }
-  };
-
-
-
- 
-
-
-    // console.log("apiClient list town", apiClient.listTowns);
-    // console.log("test Room", room);
-    // console.log("hello test room list", setRoomList);
+    };
 
 
   return (
@@ -129,7 +130,10 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
             <Box borderWidth="1px" borderRadius="lg">
               <Flex p="4"><FormControl>
                 <FormLabel htmlFor="townIDToJoin">Town ID</FormLabel>
-                <Input name="townIDToJoin" placeholder="ID of town to join, or select from list"/>
+                <Input autoFocus name="townIDToJoin" placeholder="ID of town to join, or select from list"
+                     value={room}
+                     onChange={event => setRoom(event.target.value)}
+                     />
               </FormControl>
                 <Button data-testid='joinTownByIDButton' onClick={handleJoin}>Connect</Button>
               </Flex>
@@ -144,11 +148,15 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
                   <Tr>
                     <Th>Room Name</Th>
                     <Th>Town ID</Th>
+                    <Th>Current Occupancy</Th>
+                    <Th>Maximum Occupancy</Th>
                     <Th>Activity</Th></Tr></Thead>
                 <Tbody>
                         <Tr key='demoTownID'>
-                <Td role='cell'>DEMO_TOWN_NAME</Td>
-                <Td role='cell'>demoTownID</Td>
+                <Td role='cell'>{ rooms.map(town => <td key = 'inner cell' >{town.friendlyName} </td> ) }</Td>
+                <Td role='cell'>{ rooms.map(town => town.coveyTownID) }</Td>
+                <Td role='cell'>{rooms.map(town => town.currentOccupancy)}</Td>
+                <Td role='cell'>{rooms.map(town => town.maximumOccupancy)}</Td>
                 <Td role='cell'>Unknown/Unknown 
                     <Button onClick={handleJoin}>Connect</Button></Td></Tr>
                 </Tbody>
