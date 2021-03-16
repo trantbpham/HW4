@@ -98,7 +98,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
           title: 'Unable to connect to Towns Service',
           description: 'Please enter a town ID',
           status: 'error',
-        })
+        });
       } else {
         apiClient.joinTown(joinRoomRequest);
       }
@@ -178,11 +178,11 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
                     <Th>Town ID</Th>
                     <Th>Activity</Th>
                     </Tr></Thead>
-                { rooms.map(town => 
+                { rooms.sort(({currentOccupancy}, {maximumOccupancy}) => currentOccupancy-maximumOccupancy).map(town => 
                   <Tr key={`${town.coveyTownID}`}>               
                     <Td role='cell'>{town.friendlyName}</Td>
                     <Td role='cell'>{town.coveyTownID }</Td>
-                    <Td role='cell'>{town.currentOccupancy}/{town.maximumOccupancy} <Button onClick={handleJoin}>Connect</Button></Td>
+                    <Td role='cell'> {town.currentOccupancy}/{town.maximumOccupancy} <Button onClick={handleJoin} disabled={ town.maximumOccupancy > 50}>Connect</Button></Td>
                   </Tr> 
                   )
                   }
