@@ -40,18 +40,27 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
 
 
 
-  const retrieveList = useCallback(async () => { 
+  const retrieveList = useCallback(async () => {
     const response = await apiClient.listTowns(); 
     setRoomList(response.towns);
  }, [apiClient,setRoomList],)
 
- retrieveList();
+ 
+
+
+  useEffect(() => {
+    retrieveList();
+  }, [retrieveList])
+  // 
+
   useEffect(() => {  
-    const id = setInterval(()=> { retrieveList() },2000) 
+    console.log("this is useEffect");
+    const id = setTimeout(()=> { retrieveList() },2000) 
     return (() => {
+      console.log("this is clearInterval");
       clearInterval(id)
     })
-  })
+  }, [retrieveList])
   
 
   // const sortDescending = () => {
@@ -59,6 +68,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
   // }
   const handleJoin = async () => {
     try {
+      console.log("this is handleJoin");
       if (!userNameJoin || userNameJoin.length === 0) {
         toast({
           title: 'Unable to join town',
@@ -85,7 +95,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
         }
         console.log("line 1");
         apiClient.joinTown(joinRoomRequest);
-        console.log("line 2");
+        console.log("error")
           return;
       }
     
