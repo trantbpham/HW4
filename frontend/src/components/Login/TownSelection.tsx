@@ -85,20 +85,24 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
         coveyTownID: room
       }
       // eslint-disable-next-line no-restricted-syntax
-      for (const oneTown of rooms) {
-        if ( oneTown.coveyTownID !== room || room.length === 0) {
-          toast({
-            title: 'Unable to connect to Towns Service',
-            description: 'Please enter a town ID',
-            status: 'error',
-          })
+      let roomFound = false;
+      for (let i = 0; i < rooms.length; i += 1) {
+        if (rooms[i].coveyTownID === room) {
+          roomFound = true;
+          break;
         }
-        console.log("line 1");
-        apiClient.joinTown(joinRoomRequest);
-        console.log("error")
-          return;
       }
-    
+      
+      if (!roomFound) {
+        toast({
+          title: 'Unable to connect to Towns Service',
+          description: 'Please enter a town ID',
+          status: 'error',
+        })
+      } else {
+        apiClient.joinTown(joinRoomRequest);
+      }
+      
 
       const loggedIn = await doLogin(initData);
       if (loggedIn) {
