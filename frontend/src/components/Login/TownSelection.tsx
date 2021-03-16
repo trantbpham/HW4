@@ -31,12 +31,14 @@ interface TownSelectionProps {
 
 
 export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Element {
-  const [userName, setUserName] = useState<string>(Video.instance()?.userName || '');
+  const [userNameJoin, setUserName] = useState<string>(Video.instance()?.userName || '');
   const [room, setRoom] = useState<string>(Video.instance()?.coveyTownID || '');
   const { connect } = useVideoContext();
   const { apiClient } = useCoveyAppState();
   const toast = useToast();
   const [rooms, setRoomList] = React.useState<CoveyTownInfo[]>([]);
+
+
 
   const retrieveList = useCallback(async () => { 
     const response = await apiClient.listTowns(); 
@@ -44,7 +46,6 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
  }, [apiClient,setRoomList],)
 
  retrieveList();
- 
   useEffect(() => {  
     const id = setInterval(()=> { retrieveList() },2000) 
     return (() => {
@@ -58,9 +59,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
   // }
   const handleJoin = async () => {
     try {
-      // eslint-disable-next-line no-console
-      console.log("reaching line 57");
-      if (!userName || userName.length === 0) {
+      if (!userNameJoin || userNameJoin.length === 0) {
         toast({
           title: 'Unable to join town',
           description: 'Please select a username',
@@ -68,11 +67,28 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
         });
         return;
       }
-      console.log("reaching line 64");
-      const initData = await Video.setup(userName, room);
-      console.log('initData: ', initData)
-      console.log("retrieve name: ", room);
-      console.log("click!");
+
+      const initData = await Video.setup(userNameJoin, room);
+
+      const joinRoomRequest = {
+        userName: userNameJoin,
+        coveyTownID: room
+      }
+      // eslint-disable-next-line no-restricted-syntax
+      for (const oneTown of rooms) {
+        if ( oneTown.coveyTownID !== room || room.length === 0) {
+          toast({
+            title: 'Unable to connect to Towns Service',
+            description: 'Please enter a town ID',
+            status: 'error',
+          })
+        }
+        console.log("line 1");
+        apiClient.joinTown(joinRoomRequest);
+        console.log("line 2");
+          return;
+      }
+    
 
       const loggedIn = await doLogin(initData);
       if (loggedIn) {
@@ -97,7 +113,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
             <FormControl>
               <FormLabel htmlFor="name">Name</FormLabel>
               <Input autoFocus name="name" placeholder="Your name"
-                     value={userName}
+                     value={userNameJoin}
                      onChange={event => setUserName(event.target.value)}
               />
             </FormControl>
@@ -134,7 +150,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
                      onChange={event => setRoom(event.target.value)}
                      />
               </FormControl>
-                <Button data-testid='joinTownByIDButton' onClick={handleJoin}>Connect</Button>
+                <Button data-testid='townIDToJoin' onClick={handleJoin}>Connect</Button>
               </Flex>
             </Box>
 
