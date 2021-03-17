@@ -76,6 +76,10 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
   }, [retrieveList])
   
 
+  // const callBackTownID = (string) => {
+  //   const foundTown = coveyTowns.find(town => passinCoveyTownID);
+  //   return foundTown;
+  // }
 
   const handleCreateNewTown = useCallback(async () => {
       try {    
