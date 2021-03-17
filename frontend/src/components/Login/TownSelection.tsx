@@ -76,12 +76,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
   }, [retrieveList])
   
 
-  // const callBackTownID = (string) => {
-  //   const foundTown = coveyTowns.find(town => passinCoveyTownID);
-  //   return foundTown;
-  // }
-
-  const handleCreateNewTown = useCallback(async () => {
+  const handleCreateNewTown = async () => {
       try {    
         setNewTownCreate();
           if (!userNameJoin || userNameJoin.length === 0) {
@@ -126,10 +121,10 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
           })
           await Video.teardown();
         }
-  }, [apiClient, connect, doLogin, newTownCreated.friendlyName, newTownID, setNewTownCreate, toast, userNameJoin])
+  }
 
   // handle join button to join room with ID
-  const handleJoin = useCallback(async () => {
+  const handleJoin = async () => {
     try {
       // check for empty userName input
       if (!userNameJoin || userNameJoin.length === 0) {
@@ -172,10 +167,17 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
       })
       await Video.teardown();
     }
-  }, [apiClient, connect, doLogin, existingTownID, toast, userNameJoin])
+  }
+
+
+  // function callBackTownID() {
+  //   const foundTown = coveyTowns.find(town => town.coveyTownID);
+  //   return foundTown;
+  // }
+
 
   // handle connect button on the room list
-  const handleJoinList = useCallback(async () => {
+  const handleJoinList = async (passCoveyTownID: string) => {
     try {
       // check for empty userName input
       if (!userNameJoin || userNameJoin.length === 0) {
@@ -187,7 +189,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
         return;
       }
 
-      if (existingTownID.length === 0) {
+      if (passCoveyTownID.length === 0) {
         toast({
           title: 'Unable to join town',
           description: 'Please enter a town ID',
@@ -196,11 +198,11 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
         return;
       }
 
-      const initData = await Video.setup(userNameJoin, existingTownID);
+      const initData = await Video.setup(userNameJoin, passCoveyTownID);
 
       const joinRoomRequest = {
         userName: userNameJoin,
-        coveyTownID: existingTownID
+        coveyTownID: passCoveyTownID
       }      
   
       const loggedIn = await doLogin(initData);
@@ -218,7 +220,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
       })
       await Video.teardown();
     }
-  }, [apiClient, connect, doLogin, existingTownID, toast, userNameJoin],)
+  }
 
 
   return (
@@ -290,7 +292,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
                     <Td role='cell'>{town.friendlyName}</Td>
                     <Td role='cell'>{town.coveyTownID }</Td>
                     <Td role='cell'> {town.currentOccupancy
-                    }/{town.maximumOccupancy} <Button onClick={handleJoinList} disabled={ town.currentOccupancy >= town.maximumOccupancy}>Connect</Button></Td>
+                    }/{town.maximumOccupancy} <Button onClick={() => handleJoinList(town.coveyTownID)} disabled={ town.currentOccupancy >= town.maximumOccupancy}>Connect</Button></Td>
                   </Tr> 
                   )
                   }
