@@ -12,7 +12,6 @@ import {
   Stack,
   Table,
   TableCaption,
-  Tbody,
   Td,
   Th,
   Thead,
@@ -35,9 +34,8 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
   const [existingTownID, setExistingTownID] = useState<string>(Video.instance()?.coveyTownID || '');
   const { connect } = useVideoContext();
   const { apiClient } = useCoveyAppState();
-
-
   const toast = useToast();
+
   const [coveyTowns, setCoveyTownsList] = React.useState<CoveyTownInfo[]>([]);
   const retrieveList = useCallback(async () => {
     const response = await apiClient.listTowns(); 
@@ -46,20 +44,11 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
 
  // user enter new friendlyName to create new town
  const [newFriendlyName, setNewFriendlyName] = useState<string>(Video.instance()?.townFriendlyName || '');
- console.log("newfriendly name: ", newFriendlyName);
   // user choose if town is public or private 
   const [checked, setChecked] = useState(true);
   // create new room and set new Town to setNewTown
   const newTownCreated = {friendlyName: newFriendlyName, isPubliclyListed: checked,}
 // get new ID for new town 
- const [newTownID, setNewTownID] = useState<string>(Video.instance()?.coveyTownID || '');
-
- const setNewTownCreate = useCallback(async () => {
-    const responseTown = await apiClient.createTown(newTownCreated); 
-    console.log("setting new town");
-    setNewTownID(responseTown.coveyTownID);
- }, [apiClient, newTownCreated])
-
 
   useEffect(() => {
     retrieveList();
@@ -67,28 +56,24 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
   // 
 
   useEffect(() => {  
-    console.log("this is useEffect");
     const id = setTimeout(()=> { retrieveList() },2000) 
     return (() => {
-      console.log("this is clearInterval");
-      clearInterval(id)
+      clearTimeout(id)
     })
   }, [retrieveList])
   
 
   const handleCreateNewTown = async () => {
       try {    
-        setNewTownCreate();
           if (!userNameJoin || userNameJoin.length === 0) {
             toast({
-              title: 'Unable to join town',
-              description: 'Please select a username',
+              title: 'Unable to create town',
+              description: 'Please select a username before creating a town',
               status: 'error',
             });
             return;
           }
           if (newTownCreated.friendlyName.length === 0) {
-            console.log("friendlyname 0");
             toast({
               title: 'Unable to create town',
               description: 'Please enter a town name',
@@ -96,12 +81,13 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
             })
             return;
           } 
-       
-          const initNewTown = await Video.setup(userNameJoin, newTownID);
+          
+          const responseTown = await apiClient.createTown(newTownCreated); 
+          const initNewTown = await Video.setup(userNameJoin, responseTown.coveyTownID);
 
           const joinNewtownRequest = {
             userName: userNameJoin,
-            coveyTownID: newTownID
+            coveyTownID: responseTown.coveyTownID
           }      
       
           const loggedInNewTown = await doLogin(initNewTown);
@@ -110,65 +96,21 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
             await connect(initNewTown.providerVideoToken);
           }
           toast({
-            title: `Town ${newTownCreated.friendlyName} is ready to go!`
+            title: `Town ${newTownCreated.friendlyName} is ready to go!`,
+            status: 'success',
+            isClosable: true,
+            duration: null
           });
           apiClient.joinTown(joinNewtownRequest);
-        } catch (err) {
+       } catch (err) {
           toast({
             title: 'Unable to connect to Towns Service',
             description: err.toString(),
             status: 'error'
           })
-          await Video.teardown();
+           await Video.teardown();
         }
   }
-
-  // handle join button to join room with ID
-  const handleJoin = async () => {
-    try {
-      // check for empty userName input
-      if (!userNameJoin || userNameJoin.length === 0) {
-        toast({
-          title: 'Unable to join town',
-          description: 'Please select a username',
-          status: 'error',
-        });
-        return;
-      }
-
-      if (existingTownID.length === 0) {
-        toast({
-          title: 'Unable to join town',
-          description: 'Please enter a town ID',
-          status: 'error',
-        });
-        return;
-      }
-
-      const initData = await Video.setup(userNameJoin, existingTownID);
-
-      const joinRoomRequest = {
-        userName: userNameJoin,
-        coveyTownID: existingTownID
-      }      
-  
-      const loggedIn = await doLogin(initData);
-      if (loggedIn) {
-        assert(initData.providerVideoToken);
-        await connect(initData.providerVideoToken);
-      }
-      apiClient.joinTown(joinRoomRequest);
-
-    } catch (err) {
-      toast({
-        title: 'Unable to connect to Towns Service',
-        description: err.toString(),
-        status: 'error'
-      })
-      await Video.teardown();
-    }
-  }
-
 
   // function callBackTownID() {
   //   const foundTown = coveyTowns.find(town => town.coveyTownID);
@@ -177,7 +119,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
 
 
   // handle connect button on the room list
-  const handleJoinList = async (passCoveyTownID: string) => {
+  const handleJoin = async (passCoveyTownID: string) => {
     try {
       // check for empty userName input
       if (!userNameJoin || userNameJoin.length === 0) {
@@ -273,7 +215,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
                      onChange={event => setExistingTownID(event.target.value)}
                      />
               </FormControl>
-                <Button data-testid='joinTownByIDButton' onClick={handleJoin}>Connect</Button>
+                <Button data-testid='joinTownByIDButton'onClick={() => handleJoin(existingTownID)} >Connect</Button>
               </Flex>
             </Box>
 
@@ -292,7 +234,7 @@ export default function TownSelection({ doLogin }: TownSelectionProps): JSX.Elem
                     <Td role='cell'>{town.friendlyName}</Td>
                     <Td role='cell'>{town.coveyTownID }</Td>
                     <Td role='cell'> {town.currentOccupancy
-                    }/{town.maximumOccupancy} <Button onClick={() => handleJoinList(town.coveyTownID)} disabled={ town.currentOccupancy >= town.maximumOccupancy}>Connect</Button></Td>
+                    }/{town.maximumOccupancy} <Button onClick={() => handleJoin(town.coveyTownID)} disabled={ town.currentOccupancy >= town.maximumOccupancy}>Connect</Button></Td>
                   </Tr> 
                   )
                   }
